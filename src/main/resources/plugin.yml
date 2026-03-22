@@ -1,0 +1,4 @@
+name: SpitPlugin
+version: '${project.version}'
+main: hex.wald.spitplugin.SpitPlugin
+api-version: '1.21'
