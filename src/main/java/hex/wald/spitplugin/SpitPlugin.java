@@ -49,7 +49,7 @@ public class SpitPlugin extends JavaPlugin implements Listener {
 
             Entity spit = player.getWorld().spawnEntity(location, EntityType.LLAMA_SPIT);
 
-            double speed = 2.3 + (Math.random() * 0.5);
+            double speed = 1.1 + (Math.random() * 0.2);
             spit.setVelocity(player.getEyeLocation().getDirection().multiply(speed));
 
             player.getWorld().playSound(
