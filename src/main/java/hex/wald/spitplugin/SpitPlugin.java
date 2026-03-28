@@ -1,74 +1,33 @@
 package hex.wald.spitplugin;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Sound;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import hex.wald.spitplugin.command.SpitCommand;
+import hex.wald.spitplugin.command.SpitMenuCommand;
+import hex.wald.spitplugin.listener.SpitMenuListener;
+import hex.wald.spitplugin.listener.SpitProjectileListener;
+import hex.wald.spitplugin.menu.SpitMenu;
+import hex.wald.spitplugin.service.SpitProjectileService;
+import hex.wald.spitplugin.service.SpitSelectionService;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class SpitPlugin extends JavaPlugin implements Listener {
+public class SpitPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
         getLogger().info("Spit Loaded :)");
 
-        getServer().getPluginManager().registerEvents(this, this);
+        SpitSelectionService selectionService = new SpitSelectionService();
+        SpitMenu spitMenu = new SpitMenu(selectionService);
+        SpitProjectileService projectileService = new SpitProjectileService(this, selectionService);
+
+        getServer().getPluginManager().registerEvents(new SpitMenuListener(selectionService, spitMenu), this);
+        getServer().getPluginManager().registerEvents(new SpitProjectileListener(projectileService), this);
+
+        getCommand("spit").setExecutor(new SpitCommand(projectileService));
+        getCommand("spitmenu").setExecutor(new SpitMenuCommand(spitMenu));
     }
 
     @Override
     public void onDisable() {
         getLogger().info("Spit Unloaded :(");
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-
-        if (cmd.getName().equalsIgnoreCase("spit")) {
-
-            if (!(sender instanceof Player)) {
-                sender.sendMessage("Only players can use this command.");
-                return true;
-            }
-
-            Player player = (Player) sender;
-
-            if (!player.hasPermission("spit.use")) {
-                player.sendMessage(ChatColor.RED + "No Permission.");
-                return true;
-            }
-
-            Location location = player.getEyeLocation()
-                    .add(player.getLocation().getDirection().multiply(0.8));
-
-            Entity spit = player.getWorld().spawnEntity(location, EntityType.LLAMA_SPIT);
-
-            double speed = 1.1 + (Math.random() * 0.2);
-            spit.setVelocity(player.getEyeLocation().getDirection().multiply(speed));
-
-            player.getWorld().playSound(
-                    player.getLocation(),
-                    Sound.ENTITY_LLAMA_SPIT,
-                    1.2f,
-                    0.9f
-            );
-
-            return true;
-        }
-
-        return false;
-    }
-
-    @EventHandler
-    public void onSpitHit(EntityDamageByEntityEvent e) {
-        if (e.getDamager().getType() == EntityType.LLAMA_SPIT) {
-            e.setDamage(1.0);
-        }
     }
 }

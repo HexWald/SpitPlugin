@@ -7,6 +7,9 @@ commands:
   spit:
     description: Spit command
     usage: /spit
+  spitmenu:
+    description: Spit menu command
+    usage: /spitmenu
 
 permissions:
   spit.use:

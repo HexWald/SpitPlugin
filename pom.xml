@@ -16,6 +16,7 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <server.plugins.dir>C:\Test-Server\plugins</server.plugins.dir>
     </properties>
 
     <repositories>
@@ -57,6 +58,28 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${server.plugins.dir}"/>
+                                <copy file="${project.build.directory}\${project.build.finalName}.jar"
+                                      tofile="${server.plugins.dir}\SpitPlugin.jar"
+                                      overwrite="true"/>
+                            </target>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
