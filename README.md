@@ -7,11 +7,9 @@
 ## ✨ Features
 
 * 💦 Player command to spit projectiles
-* 🎯 Configurable damage system
 * 🔊 Optional sound effects
 * ⏱️ Cooldown system to prevent spam
 * 🔒 Permission-based access
-* ⚙️ Fully configurable via `config.yml`
 
 ---
 
@@ -41,22 +39,6 @@
 | `spit.reload` | Allows reloading the config |
 
 ---
-
-## ⚙️ Configuration (`config.yml`)
-
-```yaml
-# Damage dealt by the spit
-damage: 2
-
-# Enable or disable sound effects
-sound: true
-
-# Cooldown in seconds
-cooldown: 5
-
-# Instantly kill target
-kill: false
-```
 
 ---
 
