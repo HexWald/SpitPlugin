@@ -33,9 +33,10 @@ public class SpitMenu {
             inventory.setItem(slot, filler);
         }
 
-        inventory.setItem(11, createItem(SpitType.DUST.getMaterial(), SpitType.DUST.getDisplayName(), selected == SpitType.DUST));
-        inventory.setItem(13, createItem(SpitType.BONE_MEAL.getMaterial(), SpitType.BONE_MEAL.getDisplayName(), selected == SpitType.BONE_MEAL));
-        inventory.setItem(15, createItem(SpitType.SLIME.getMaterial(), SpitType.SLIME.getDisplayName(), selected == SpitType.SLIME));
+        inventory.setItem(10, createItem(SpitType.DUST.getMaterial(), SpitType.DUST.getDisplayName(), selected == SpitType.DUST));
+        inventory.setItem(12, createItem(SpitType.BONE_MEAL.getMaterial(), SpitType.BONE_MEAL.getDisplayName(), selected == SpitType.BONE_MEAL));
+        inventory.setItem(14, createItem(SpitType.HONEY.getMaterial(), SpitType.HONEY.getDisplayName(), selected == SpitType.HONEY));
+        inventory.setItem(16, createItem(SpitType.SLIME.getMaterial(), SpitType.SLIME.getDisplayName(), selected == SpitType.SLIME));
         return inventory;
     }
 

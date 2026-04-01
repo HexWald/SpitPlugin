@@ -6,6 +6,7 @@ import org.bukkit.Material;
 public enum SpitType {
     DUST(Material.GUNPOWDER, ChatColor.DARK_GRAY + "Dust"),
     BONE_MEAL(Material.BONE_MEAL, ChatColor.WHITE + "Bone Meal"),
+    HONEY(Material.HONEYCOMB, ChatColor.GOLD + "Honey"),
     SLIME(Material.SLIME_BALL, ChatColor.GREEN + "Slime");
 
     private final Material material;
