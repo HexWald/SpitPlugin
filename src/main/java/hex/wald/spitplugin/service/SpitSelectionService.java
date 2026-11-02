@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class SpitSelectionService {
 
-    private final Map<UUID, SpitType> selections = new HashMap<UUID, SpitType>();
+    private final Map<UUID, SpitType> selections = new HashMap<>();
 
     public SpitType getSelected(UUID playerId) {
         SpitType spitType = selections.get(playerId);

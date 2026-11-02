@@ -11,7 +11,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class SpitPlugin extends JavaPlugin {
 
-
     @Override
     public void onEnable() {
         getLogger().info("Spit Loaded :)");

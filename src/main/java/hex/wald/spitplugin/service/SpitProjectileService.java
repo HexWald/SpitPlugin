@@ -4,7 +4,6 @@ import hex.wald.spitplugin.model.SpitType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Predicate;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -23,14 +22,14 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 public class SpitProjectileService {
 
     private final JavaPlugin plugin;
     private final SpitSelectionService selectionService;
-    private final Map<UUID, SpitType> trackedProjectiles = new HashMap<UUID, SpitType>();
+    private final Map<UUID, SpitType> trackedProjectiles = new HashMap<>();
     private final BlockData lightPowder = Material.LIGHT_GRAY_CONCRETE_POWDER.createBlockData();
     private final ItemStack honeyItem = new ItemStack(Material.HONEY_BOTTLE);
     private final ItemStack slimeItem = new ItemStack(Material.SLIME_BALL);
@@ -42,7 +41,7 @@ public class SpitProjectileService {
 
     public void launch(Player player) {
         SpitType spitType = selectionService.getSelected(player.getUniqueId());
-        Projectile projectile = spitType == SpitType.BONE_MEAL ? launchVanilla(player) : launchCustom(player);
+        Projectile projectile = launchSpit(player);
 
         trackedProjectiles.put(projectile.getUniqueId(), spitType);
 
@@ -79,15 +78,7 @@ public class SpitProjectileService {
         }
     }
 
-    private Projectile launchVanilla(Player player) {
-        Location location = player.getEyeLocation().add(player.getLocation().getDirection().multiply(0.8));
-        LlamaSpit spit = (LlamaSpit) player.getWorld().spawnEntity(location, EntityType.LLAMA_SPIT);
-        spit.setShooter(player);
-        spit.setVelocity(player.getEyeLocation().getDirection().multiply(randomSpeed()));
-        return spit;
-    }
-
-    private Projectile launchCustom(Player player) {
+    private Projectile launchSpit(Player player) {
         Location location = player.getEyeLocation().add(player.getLocation().getDirection().multiply(0.8));
         LlamaSpit spit = (LlamaSpit) player.getWorld().spawnEntity(location, EntityType.LLAMA_SPIT);
         spit.setShooter(player);
@@ -142,12 +133,7 @@ public class SpitProjectileService {
                 FluidCollisionMode.NEVER,
                 true,
                 0.2,
-                new Predicate<Entity>() {
-                    @Override
-                    public boolean test(Entity entity) {
-                        return entity != projectile && entity != shooter;
-                    }
-                }
+                entity -> entity != projectile && entity != shooter
         );
 
         if (result == null) {
