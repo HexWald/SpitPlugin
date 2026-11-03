@@ -1,12 +1,12 @@
 name: SpitPlugin
-version: 1.0
+version: '${project.version}'
 main: hex.wald.spitplugin.SpitPlugin
-api-version: 1.20
+api-version: '1.20'
 
 commands:
   spit:
-    description: Spit command
-    usage: /spit
+    description: Spit or reload the settings
+    usage: /spit [reload]
   spitmenu:
     description: Spit menu command
     usage: /spitmenu
@@ -14,3 +14,5 @@ commands:
 permissions:
   spit.use:
     default: true
+  spit.reload:
+    default: op

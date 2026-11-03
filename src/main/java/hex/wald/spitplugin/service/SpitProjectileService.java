@@ -10,6 +10,7 @@ import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Damageable;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
@@ -29,6 +31,7 @@ public class SpitProjectileService {
 
     private final SpitPlugin plugin;
     private final SpitSelectionService selectionService;
+    private final NamespacedKey spitKey;
     private final Map<UUID, SpitType> trackedProjectiles = new HashMap<>();
     private final BlockData lightPowder = Material.LIGHT_GRAY_CONCRETE_POWDER.createBlockData();
     private final ItemStack honeyItem = new ItemStack(Material.HONEY_BOTTLE);
@@ -37,6 +40,7 @@ public class SpitProjectileService {
     public SpitProjectileService(SpitPlugin plugin, SpitSelectionService selectionService) {
         this.plugin = plugin;
         this.selectionService = selectionService;
+        this.spitKey = new NamespacedKey(plugin, "spit");
     }
 
     public void launch(Player player) {
@@ -60,9 +64,7 @@ public class SpitProjectileService {
             return;
         }
 
-        SpitType spitType = trackedProjectiles.get(event.getDamager().getUniqueId());
-
-        if (spitType == null) {
+        if (!event.getDamager().getPersistentDataContainer().has(spitKey, PersistentDataType.BYTE)) {
             return;
         }
 
@@ -84,6 +86,7 @@ public class SpitProjectileService {
     private Projectile launchSpit(Player player) {
         Location location = player.getEyeLocation().add(player.getLocation().getDirection().multiply(0.8));
         LlamaSpit spit = (LlamaSpit) player.getWorld().spawnEntity(location, EntityType.LLAMA_SPIT);
+        spit.getPersistentDataContainer().set(spitKey, PersistentDataType.BYTE, (byte) 1);
         spit.setShooter(player);
         spit.setVelocity(player.getEyeLocation().getDirection().multiply(randomSpeed()));
         return spit;

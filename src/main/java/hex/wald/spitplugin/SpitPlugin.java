@@ -35,7 +35,9 @@ public class SpitPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SpitMenuListener(selectionService, spitMenu), this);
         getServer().getPluginManager().registerEvents(new SpitProjectileListener(projectileService), this);
 
-        getCommand("spit").setExecutor(new SpitCommand(projectileService));
+        SpitCommand spitCommand = new SpitCommand(this, projectileService);
+        getCommand("spit").setExecutor(spitCommand);
+        getCommand("spit").setTabCompleter(spitCommand);
         getCommand("spitmenu").setExecutor(new SpitMenuCommand(spitMenu));
     }
 
