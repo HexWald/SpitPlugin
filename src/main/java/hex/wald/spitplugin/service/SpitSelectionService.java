@@ -1,5 +1,6 @@
 package hex.wald.spitplugin.service;
 
+import hex.wald.spitplugin.config.SpitSettings;
 import hex.wald.spitplugin.model.SpitType;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,9 +10,9 @@ public class SpitSelectionService {
 
     private final Map<UUID, SpitType> selections = new HashMap<>();
 
-    public SpitType getSelected(UUID playerId) {
+    public SpitType getSelected(UUID playerId, SpitSettings settings) {
         SpitType spitType = selections.get(playerId);
-        return spitType == null ? SpitType.BONE_MEAL : spitType;
+        return spitType != null && settings.isEnabled(spitType) ? spitType : settings.getDefaultType();
     }
 
     public void setSelected(UUID playerId, SpitType spitType) {

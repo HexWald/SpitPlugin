@@ -1,5 +1,7 @@
 package hex.wald.spitplugin.menu;
 
+import hex.wald.spitplugin.SpitPlugin;
+import hex.wald.spitplugin.config.SpitSettings;
 import hex.wald.spitplugin.model.SpitType;
 import hex.wald.spitplugin.service.SpitSelectionService;
 import org.bukkit.Bukkit;
@@ -14,16 +16,19 @@ import org.bukkit.inventory.meta.ItemMeta;
 public class SpitMenu {
 
     private static final String TITLE = ChatColor.WHITE + "Spit Menu";
+    private final SpitPlugin plugin;
     private final SpitSelectionService selectionService;
 
-    public SpitMenu(SpitSelectionService selectionService) {
+    public SpitMenu(SpitPlugin plugin, SpitSelectionService selectionService) {
+        this.plugin = plugin;
         this.selectionService = selectionService;
     }
 
     public Inventory create(Player player) {
         Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
         ItemStack filler = createItem(Material.WHITE_STAINED_GLASS_PANE, " ", false);
-        SpitType selected = selectionService.getSelected(player.getUniqueId());
+        SpitSettings settings = plugin.getSettings();
+        SpitType selected = selectionService.getSelected(player.getUniqueId(), settings);
 
         for (int slot = 0; slot < 9; slot++) {
             inventory.setItem(slot, filler);
@@ -33,10 +38,13 @@ public class SpitMenu {
             inventory.setItem(slot, filler);
         }
 
-        inventory.setItem(10, createItem(SpitType.DUST.getMaterial(), SpitType.DUST.getDisplayName(), selected == SpitType.DUST));
-        inventory.setItem(12, createItem(SpitType.BONE_MEAL.getMaterial(), SpitType.BONE_MEAL.getDisplayName(), selected == SpitType.BONE_MEAL));
-        inventory.setItem(14, createItem(SpitType.HONEY.getMaterial(), SpitType.HONEY.getDisplayName(), selected == SpitType.HONEY));
-        inventory.setItem(16, createItem(SpitType.SLIME.getMaterial(), SpitType.SLIME.getDisplayName(), selected == SpitType.SLIME));
+        int slot = 10;
+        for (SpitType type : SpitType.values()) {
+            if (settings.isEnabled(type)) {
+                inventory.setItem(slot, createItem(type.getMaterial(), type.getDisplayName(), selected == type));
+            }
+            slot += 2;
+        }
         return inventory;
     }
 
@@ -46,7 +54,7 @@ public class SpitMenu {
 
     public SpitType resolve(Material material) {
         for (SpitType spitType : SpitType.values()) {
-            if (spitType.getMaterial() == material) {
+            if (spitType.getMaterial() == material && plugin.getSettings().isEnabled(spitType)) {
                 return spitType;
             }
         }

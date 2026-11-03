@@ -1,5 +1,7 @@
 package hex.wald.spitplugin.service;
 
+import hex.wald.spitplugin.SpitPlugin;
+import hex.wald.spitplugin.config.SpitSettings;
 import hex.wald.spitplugin.model.SpitType;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,7 +11,6 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.Sound;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
@@ -20,27 +21,27 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 public class SpitProjectileService {
 
-    private final JavaPlugin plugin;
+    private final SpitPlugin plugin;
     private final SpitSelectionService selectionService;
     private final Map<UUID, SpitType> trackedProjectiles = new HashMap<>();
     private final BlockData lightPowder = Material.LIGHT_GRAY_CONCRETE_POWDER.createBlockData();
     private final ItemStack honeyItem = new ItemStack(Material.HONEY_BOTTLE);
     private final ItemStack slimeItem = new ItemStack(Material.SLIME_BALL);
 
-    public SpitProjectileService(JavaPlugin plugin, SpitSelectionService selectionService) {
+    public SpitProjectileService(SpitPlugin plugin, SpitSelectionService selectionService) {
         this.plugin = plugin;
         this.selectionService = selectionService;
     }
 
     public void launch(Player player) {
-        SpitType spitType = selectionService.getSelected(player.getUniqueId());
+        SpitSettings settings = plugin.getSettings();
+        SpitType spitType = selectionService.getSelected(player.getUniqueId(), settings);
         Projectile projectile = launchSpit(player);
 
         trackedProjectiles.put(projectile.getUniqueId(), spitType);
@@ -49,7 +50,9 @@ public class SpitProjectileService {
             startTrail(projectile, spitType);
         }
 
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_LLAMA_SPIT, 1.2f, 0.9f);
+        if (settings.isSoundEnabled()) {
+            player.getWorld().playSound(player.getLocation(), settings.getSound(), settings.getVolume(), settings.getPitch());
+        }
     }
 
     public void handleDamage(EntityDamageByEntityEvent event) {
@@ -63,7 +66,7 @@ public class SpitProjectileService {
             return;
         }
 
-        event.setDamage(1.0);
+        event.setDamage(plugin.getSettings().getDamage());
     }
 
     public void handleHit(ProjectileHitEvent event) {
@@ -87,7 +90,8 @@ public class SpitProjectileService {
     }
 
     private double randomSpeed() {
-        return 1.1 + (Math.random() * 0.2);
+        SpitSettings settings = plugin.getSettings();
+        return settings.getMinSpeed() + Math.random() * (settings.getMaxSpeed() - settings.getMinSpeed());
     }
 
     private void startTrail(final Projectile projectile, final SpitType spitType) {
@@ -148,9 +152,9 @@ public class SpitProjectileService {
             Damageable damageable = (Damageable) result.getHitEntity();
 
             if (projectile.getShooter() instanceof Player) {
-                damageable.damage(1.0, (Player) projectile.getShooter());
+                damageable.damage(plugin.getSettings().getDamage(), (Player) projectile.getShooter());
             } else {
-                damageable.damage(1.0);
+                damageable.damage(plugin.getSettings().getDamage());
             }
         }
 
@@ -161,53 +165,64 @@ public class SpitProjectileService {
     }
 
     private void spawnDustTrail(Location location, Vector velocity) {
-        location.getWorld().spawnParticle(Particle.SMOKE_NORMAL, location, 1, 0.05, 0.05, 0.05, 0.006);
-        location.getWorld().spawnParticle(Particle.ASH, location, 4, 0.08, 0.08, 0.08, 0.0);
-        location.getWorld().spawnParticle(Particle.FALLING_DUST, location, 5, 0.1, 0.1, 0.1, 0.0, lightPowder);
-        location.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 1, 0.02, 0.02, 0.02, 0.0);
-        location.getWorld().spawnParticle(Particle.REDSTONE, location, 4, 0.07, 0.07, 0.07, 0.0, new Particle.DustOptions(Color.fromRGB(140, 140, 140), 1.35f));
+        spawnParticle(Particle.SMOKE_NORMAL, location, 1, 0.05, 0.05, 0.05, 0.006);
+        spawnParticle(Particle.ASH, location, 4, 0.08, 0.08, 0.08, 0.0);
+        spawnParticle(Particle.FALLING_DUST, location, 5, 0.1, 0.1, 0.1, 0.0, lightPowder);
+        spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 1, 0.02, 0.02, 0.02, 0.0);
+        spawnParticle(Particle.REDSTONE, location, 4, 0.07, 0.07, 0.07, 0.0, new Particle.DustOptions(Color.fromRGB(140, 140, 140), 1.35f));
         Location wake = location.clone().subtract(velocity.clone().normalize().multiply(0.12));
-        location.getWorld().spawnParticle(Particle.FALLING_DUST, wake, 4, 0.06, 0.06, 0.06, 0.0, lightPowder);
-        location.getWorld().spawnParticle(Particle.REDSTONE, wake, 2, 0.05, 0.05, 0.05, 0.0, new Particle.DustOptions(Color.fromRGB(115, 115, 115), 1.05f));
+        spawnParticle(Particle.FALLING_DUST, wake, 4, 0.06, 0.06, 0.06, 0.0, lightPowder);
+        spawnParticle(Particle.REDSTONE, wake, 2, 0.05, 0.05, 0.05, 0.0, new Particle.DustOptions(Color.fromRGB(115, 115, 115), 1.05f));
     }
 
     private void spawnSlimeTrail(Location location, Vector velocity) {
-        location.getWorld().spawnParticle(Particle.ITEM_CRACK, location, 5, 0.09, 0.09, 0.09, 0.015, slimeItem);
-        location.getWorld().spawnParticle(Particle.REDSTONE, location, 5, 0.08, 0.08, 0.08, 0.0, new Particle.DustOptions(Color.fromRGB(85, 205, 85), 1.25f));
+        spawnParticle(Particle.ITEM_CRACK, location, 5, 0.09, 0.09, 0.09, 0.015, slimeItem);
+        spawnParticle(Particle.REDSTONE, location, 5, 0.08, 0.08, 0.08, 0.0, new Particle.DustOptions(Color.fromRGB(85, 205, 85), 1.25f));
         Location wake = location.clone().subtract(velocity.clone().normalize().multiply(0.12));
-        location.getWorld().spawnParticle(Particle.ITEM_CRACK, wake, 3, 0.07, 0.07, 0.07, 0.01, slimeItem);
-        location.getWorld().spawnParticle(Particle.REDSTONE, wake, 3, 0.06, 0.06, 0.06, 0.0, new Particle.DustOptions(Color.fromRGB(60, 180, 75), 1.0f));
+        spawnParticle(Particle.ITEM_CRACK, wake, 3, 0.07, 0.07, 0.07, 0.01, slimeItem);
+        spawnParticle(Particle.REDSTONE, wake, 3, 0.06, 0.06, 0.06, 0.0, new Particle.DustOptions(Color.fromRGB(60, 180, 75), 1.0f));
     }
 
     private void spawnHoneyTrail(Location location, Vector velocity) {
-        location.getWorld().spawnParticle(Particle.ITEM_CRACK, location, 4, 0.08, 0.08, 0.08, 0.012, honeyItem);
-        location.getWorld().spawnParticle(Particle.WAX_ON, location, 2, 0.07, 0.07, 0.07, 0.0);
-        location.getWorld().spawnParticle(Particle.REDSTONE, location, 4, 0.07, 0.07, 0.07, 0.0, new Particle.DustOptions(Color.fromRGB(245, 191, 66), 1.3f));
+        spawnParticle(Particle.ITEM_CRACK, location, 4, 0.08, 0.08, 0.08, 0.012, honeyItem);
+        spawnParticle(Particle.WAX_ON, location, 2, 0.07, 0.07, 0.07, 0.0);
+        spawnParticle(Particle.REDSTONE, location, 4, 0.07, 0.07, 0.07, 0.0, new Particle.DustOptions(Color.fromRGB(245, 191, 66), 1.3f));
         Location wake = location.clone().subtract(velocity.clone().normalize().multiply(0.12));
-        location.getWorld().spawnParticle(Particle.ITEM_CRACK, wake, 2, 0.06, 0.06, 0.06, 0.01, honeyItem);
-        location.getWorld().spawnParticle(Particle.REDSTONE, wake, 2, 0.05, 0.05, 0.05, 0.0, new Particle.DustOptions(Color.fromRGB(214, 149, 36), 1.0f));
+        spawnParticle(Particle.ITEM_CRACK, wake, 2, 0.06, 0.06, 0.06, 0.01, honeyItem);
+        spawnParticle(Particle.REDSTONE, wake, 2, 0.05, 0.05, 0.05, 0.0, new Particle.DustOptions(Color.fromRGB(214, 149, 36), 1.0f));
     }
 
     private void spawnBurst(Location location, SpitType spitType) {
         if (spitType == SpitType.DUST) {
-            location.getWorld().spawnParticle(Particle.SMOKE_NORMAL, location, 2, 0.14, 0.14, 0.14, 0.012);
-            location.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 1, 0.1, 0.1, 0.1, 0.005);
-            location.getWorld().spawnParticle(Particle.ASH, location, 8, 0.24, 0.24, 0.24, 0.01);
-            location.getWorld().spawnParticle(Particle.FALLING_DUST, location, 12, 0.24, 0.24, 0.24, 0.0, lightPowder);
-            location.getWorld().spawnParticle(Particle.REDSTONE, location, 8, 0.18, 0.18, 0.18, 0.0, new Particle.DustOptions(Color.fromRGB(150, 150, 150), 1.75f));
+            spawnParticle(Particle.SMOKE_NORMAL, location, 2, 0.14, 0.14, 0.14, 0.012);
+            spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 1, 0.1, 0.1, 0.1, 0.005);
+            spawnParticle(Particle.ASH, location, 8, 0.24, 0.24, 0.24, 0.01);
+            spawnParticle(Particle.FALLING_DUST, location, 12, 0.24, 0.24, 0.24, 0.0, lightPowder);
+            spawnParticle(Particle.REDSTONE, location, 8, 0.18, 0.18, 0.18, 0.0, new Particle.DustOptions(Color.fromRGB(150, 150, 150), 1.75f));
             return;
         }
 
         if (spitType == SpitType.HONEY) {
-            location.getWorld().spawnParticle(Particle.ITEM_CRACK, location, 8, 0.18, 0.18, 0.18, 0.02, honeyItem);
-            location.getWorld().spawnParticle(Particle.WAX_ON, location, 4, 0.16, 0.16, 0.16, 0.01);
-            location.getWorld().spawnParticle(Particle.REDSTONE, location, 7, 0.18, 0.18, 0.18, 0.0, new Particle.DustOptions(Color.fromRGB(248, 196, 72), 1.75f));
-            location.getWorld().spawnParticle(Particle.REDSTONE, location, 4, 0.13, 0.13, 0.13, 0.0, new Particle.DustOptions(Color.fromRGB(196, 124, 22), 1.15f));
+            spawnParticle(Particle.ITEM_CRACK, location, 8, 0.18, 0.18, 0.18, 0.02, honeyItem);
+            spawnParticle(Particle.WAX_ON, location, 4, 0.16, 0.16, 0.16, 0.01);
+            spawnParticle(Particle.REDSTONE, location, 7, 0.18, 0.18, 0.18, 0.0, new Particle.DustOptions(Color.fromRGB(248, 196, 72), 1.75f));
+            spawnParticle(Particle.REDSTONE, location, 4, 0.13, 0.13, 0.13, 0.0, new Particle.DustOptions(Color.fromRGB(196, 124, 22), 1.15f));
             return;
         }
 
-        location.getWorld().spawnParticle(Particle.ITEM_CRACK, location, 9, 0.2, 0.2, 0.2, 0.025, slimeItem);
-        location.getWorld().spawnParticle(Particle.REDSTONE, location, 8, 0.18, 0.18, 0.18, 0.0, new Particle.DustOptions(Color.fromRGB(70, 210, 85), 1.7f));
-        location.getWorld().spawnParticle(Particle.REDSTONE, location, 4, 0.14, 0.14, 0.14, 0.0, new Particle.DustOptions(Color.fromRGB(35, 145, 55), 1.2f));
+        spawnParticle(Particle.ITEM_CRACK, location, 9, 0.2, 0.2, 0.2, 0.025, slimeItem);
+        spawnParticle(Particle.REDSTONE, location, 8, 0.18, 0.18, 0.18, 0.0, new Particle.DustOptions(Color.fromRGB(70, 210, 85), 1.7f));
+        spawnParticle(Particle.REDSTONE, location, 4, 0.14, 0.14, 0.14, 0.0, new Particle.DustOptions(Color.fromRGB(35, 145, 55), 1.2f));
+    }
+
+    private void spawnParticle(Particle particle, Location location, int count, double x, double y, double z, double speed) {
+        spawnParticle(particle, location, count, x, y, z, speed, null);
+    }
+
+    private void spawnParticle(Particle particle, Location location, int count, double x, double y, double z, double speed, Object data) {
+        int amount = plugin.getSettings().particleCount(count);
+        if (amount > 0) {
+            location.getWorld().spawnParticle(particle, location, amount, x, y, z, speed, data);
+        }
     }
 }
