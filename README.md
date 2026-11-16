@@ -36,7 +36,8 @@ Missing keys use the defaults shipped with the plugin.
 
 Particle settings affect the extra trails and impact bursts. An amount of
 0 sends none; 0.5 roughly halves the count, with at least one per component.
-The vanilla llama spit appearance is unchanged.
+All four types use the server's projectile collision and damage events.
+Set `damage` to 0 to cancel the damage event.
 
 Disabled types disappear from the menu and cannot be selected in an already
 open menu. If a selected type is disabled, the player uses Bone Meal if

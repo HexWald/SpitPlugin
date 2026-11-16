@@ -7,14 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.bukkit.Color;
-import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Damageable;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LlamaSpit;
 import org.bukkit.entity.Player;
@@ -24,7 +21,6 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 public class SpitProjectileService {
@@ -48,9 +44,8 @@ public class SpitProjectileService {
         SpitType spitType = selectionService.getSelected(player.getUniqueId(), settings);
         Projectile projectile = launchSpit(player);
 
-        trackedProjectiles.put(projectile.getUniqueId(), spitType);
-
         if (spitType != SpitType.BONE_MEAL) {
+            trackedProjectiles.put(projectile.getUniqueId(), spitType);
             startTrail(projectile, spitType);
         }
 
@@ -68,17 +63,18 @@ public class SpitProjectileService {
             return;
         }
 
-        event.setDamage(plugin.getSettings().getDamage());
+        double damage = plugin.getSettings().getDamage();
+        if (damage == 0) {
+            event.setCancelled(true);
+        } else {
+            event.setDamage(damage);
+        }
     }
 
     public void handleHit(ProjectileHitEvent event) {
         SpitType spitType = trackedProjectiles.remove(event.getEntity().getUniqueId());
 
-        if (spitType == null) {
-            return;
-        }
-
-        if (spitType != SpitType.BONE_MEAL) {
+        if (spitType != null) {
             spawnBurst(event.getEntity().getLocation(), spitType);
         }
     }
@@ -98,16 +94,12 @@ public class SpitProjectileService {
     }
 
     private void startTrail(final Projectile projectile, final SpitType spitType) {
+        UUID id = projectile.getUniqueId();
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (!projectile.isValid() || projectile.isDead()) {
-                    trackedProjectiles.remove(projectile.getUniqueId());
-                    cancel();
-                    return;
-                }
-
-                if (handleCustomCollision(projectile, spitType)) {
+                if (!trackedProjectiles.containsKey(id) || !projectile.isValid() || projectile.isDead()) {
+                    trackedProjectiles.remove(id);
                     cancel();
                     return;
                 }
@@ -127,44 +119,6 @@ public class SpitProjectileService {
                 spawnSlimeTrail(location, projectile.getVelocity());
             }
         }.runTaskTimer(plugin, 0L, 1L);
-    }
-
-    private boolean handleCustomCollision(Projectile projectile, SpitType spitType) {
-        Vector velocity = projectile.getVelocity();
-        double distance = Math.max(velocity.length(), 0.35D);
-        Entity shooter = projectile.getShooter() instanceof Entity ? (Entity) projectile.getShooter() : null;
-        RayTraceResult result = projectile.getWorld().rayTrace(
-                projectile.getLocation(),
-                velocity.clone().normalize(),
-                distance,
-                FluidCollisionMode.NEVER,
-                true,
-                0.2,
-                entity -> entity != projectile && entity != shooter
-        );
-
-        if (result == null) {
-            return false;
-        }
-
-        Location impactLocation = result.getHitPosition() == null
-                ? projectile.getLocation()
-                : result.getHitPosition().toLocation(projectile.getWorld());
-
-        if (result.getHitEntity() instanceof Damageable) {
-            Damageable damageable = (Damageable) result.getHitEntity();
-
-            if (projectile.getShooter() instanceof Player) {
-                damageable.damage(plugin.getSettings().getDamage(), (Player) projectile.getShooter());
-            } else {
-                damageable.damage(plugin.getSettings().getDamage());
-            }
-        }
-
-        spawnBurst(impactLocation, spitType);
-        trackedProjectiles.remove(projectile.getUniqueId());
-        projectile.remove();
-        return true;
     }
 
     private void spawnDustTrail(Location location, Vector velocity) {

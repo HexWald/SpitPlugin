@@ -2,6 +2,7 @@ package hex.wald.spitplugin.service;
 
 import hex.wald.spitplugin.SpitPlugin;
 import hex.wald.spitplugin.config.SpitSettings;
+import hex.wald.spitplugin.listener.SpitProjectileListener;
 import hex.wald.spitplugin.model.SpitType;
 import java.util.UUID;
 import org.bukkit.Bukkit;
@@ -15,7 +16,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LlamaSpit;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Damageable;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -23,7 +25,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
-import org.bukkit.util.RayTraceResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,7 +95,7 @@ public class SpitProjectileServiceTest {
     }
 
     @Test
-    public void damageUsesTheCurrentSettingsIncludingZero() {
+    public void zeroDamageCancelsTheHitEvenAfterReload() {
         service.launch(player);
         EntityDamageByEntityEvent event = mock(EntityDamageByEntityEvent.class);
         when(event.getDamager()).thenReturn(spit);
@@ -104,7 +105,8 @@ public class SpitProjectileServiceTest {
 
         service.handleDamage(event);
 
-        verify(event).setDamage(0.0);
+        verify(event).setCancelled(true);
+        verify(event, never()).setDamage(anyDouble());
     }
 
     @Test
@@ -145,7 +147,7 @@ public class SpitProjectileServiceTest {
     }
 
     @Test
-    public void zeroParticlesStillChecksForCollisions() {
+    public void zeroParticlesDoNotStopNativeHits() {
         YamlConfiguration config = new YamlConfiguration();
         config.set("particles.amount", 0);
         when(plugin.getSettings()).thenReturn(new SpitSettings(config));
@@ -153,7 +155,7 @@ public class SpitProjectileServiceTest {
         service.launch(player);
         trail().run();
 
-        verify(world).rayTrace(any(), any(), anyDouble(), any(), anyBoolean(), anyDouble(), any());
+        verify(spit, never()).remove();
         verify(world, never()).spawnParticle(any(Particle.class), any(Location.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), anyDouble(), any());
     }
 
@@ -170,23 +172,33 @@ public class SpitProjectileServiceTest {
     }
 
     @Test
-    public void customCollisionUsesConfiguredDamage() {
-        YamlConfiguration config = new YamlConfiguration();
-        config.set("damage", 3.5);
-        when(plugin.getSettings()).thenReturn(new SpitSettings(config));
-        when(spit.getShooter()).thenReturn(player);
-        Damageable target = mock(Damageable.class);
-        RayTraceResult hit = mock(RayTraceResult.class);
-        when(hit.getHitEntity()).thenReturn(target);
-        when(hit.getHitPosition()).thenReturn(new Vector(0, 64, 1));
-        when(world.rayTrace(any(), any(), anyDouble(), any(), anyBoolean(), anyDouble(), any())).thenReturn(hit);
+    public void nativeHitProducesOneBurstAndStopsTheTrail() {
         selection.setSelected(player.getUniqueId(), SpitType.HONEY);
-
         service.launch(player);
+        ProjectileHitEvent hit = mock(ProjectileHitEvent.class);
+        when(hit.getEntity()).thenReturn(spit);
+
+        service.handleHit(hit);
+        service.handleHit(hit);
         trail().run();
 
-        verify(target).damage(3.5, player);
-        verify(spit).remove();
+        verify(world).spawnParticle(eq(Particle.WAX_ON), any(Location.class), eq(4),
+                anyDouble(), anyDouble(), anyDouble(), anyDouble(), isNull());
+        verify(world, never()).spawnParticle(eq(Particle.WAX_ON), any(Location.class), eq(2),
+                anyDouble(), anyDouble(), anyDouble(), anyDouble(), isNull());
+        verify(spit, never()).remove();
+    }
+
+    @Test
+    public void listenersLeaveCancelledEventsAlone() throws Exception {
+        EventHandler hit = SpitProjectileListener.class
+                .getMethod("onProjectileHit", ProjectileHitEvent.class).getAnnotation(EventHandler.class);
+        EventHandler damage = SpitProjectileListener.class
+                .getMethod("onProjectileDamage", EntityDamageByEntityEvent.class).getAnnotation(EventHandler.class);
+
+        assertTrue(hit.ignoreCancelled());
+        assertEquals(EventPriority.MONITOR, hit.priority());
+        assertTrue(damage.ignoreCancelled());
     }
 
     private Runnable trail() {
