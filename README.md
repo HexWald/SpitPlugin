@@ -12,7 +12,7 @@ the default. The others add a particle trail and a burst on impact.
 Honey and Slime are visual effects; they do not apply potion effects.
 
 By default, spit deals 1 damage before armor and other modifiers and moves
-at a random speed between 1.1 and 1.3. There is no cooldown.
+at a random speed between 1.1 and 1.3. Players can spit once every two seconds by default.
 Effect selections are kept in memory and reset when the plugin restarts.
 
 ## Settings
@@ -25,6 +25,7 @@ Missing keys use the defaults shipped with the plugin.
 | Setting | Default | Accepted values |
 | --- | --- | --- |
 | `damage` | `1.0` | 0 to 1000 |
+| `cooldown-seconds` | `2.0` | 0 to 60 seconds. Use 0 to disable it. |
 | `speed.min`, `speed.max` | `1.1`, `1.3` | 0.1 to 4, min cannot exceed max |
 | `sound.enabled` | `true` | true or false |
 | `sound.name` | `ENTITY_LLAMA_SPIT` | A Bukkit sound name for the server version |

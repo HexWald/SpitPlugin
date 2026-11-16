@@ -9,7 +9,11 @@ import org.bukkit.configuration.ConfigurationSection;
 
 public class SpitSettings {
 
+    private static final int MAX_COOLDOWN_SECONDS = 60;
+    public static final long MAX_COOLDOWN_NANOS = MAX_COOLDOWN_SECONDS * 1_000_000_000L;
+
     private final double damage;
+    private final long cooldownNanos;
     private final double minSpeed;
     private final double maxSpeed;
     private final boolean soundEnabled;
@@ -28,6 +32,7 @@ public class SpitSettings {
         }
 
         damage = number(config, "damage", 1.0, 0.0, 1000.0);
+        cooldownNanos = Math.round(number(config, "cooldown-seconds", 2.0, 0.0, MAX_COOLDOWN_SECONDS) * 1_000_000_000);
         minSpeed = number(config, "speed.min", 1.1, 0.1, 4.0);
         maxSpeed = number(config, "speed.max", 1.3, 0.1, 4.0);
         if (minSpeed > maxSpeed) {
@@ -75,6 +80,10 @@ public class SpitSettings {
 
     public double getDamage() {
         return damage;
+    }
+
+    public long getCooldownNanos() {
+        return cooldownNanos;
     }
 
     public double getMinSpeed() {

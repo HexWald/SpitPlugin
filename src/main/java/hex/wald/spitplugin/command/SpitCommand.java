@@ -1,10 +1,16 @@
 package hex.wald.spitplugin.command;
 
 import hex.wald.spitplugin.SpitPlugin;
+import hex.wald.spitplugin.config.SpitSettings;
 import hex.wald.spitplugin.service.SpitProjectileService;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -16,10 +22,19 @@ public class SpitCommand implements CommandExecutor, TabCompleter {
 
     private final SpitPlugin plugin;
     private final SpitProjectileService projectileService;
+    private final LongSupplier clock;
+    private final Map<UUID, Long> lastSpit = new HashMap<>();
+    private long lastCleanup;
 
     public SpitCommand(SpitPlugin plugin, SpitProjectileService projectileService) {
+        this(plugin, projectileService, System::nanoTime);
+    }
+
+    SpitCommand(SpitPlugin plugin, SpitProjectileService projectileService, LongSupplier clock) {
         this.plugin = plugin;
         this.projectileService = projectileService;
+        this.clock = clock;
+        this.lastCleanup = clock.getAsLong();
     }
 
     @Override
@@ -51,7 +66,24 @@ public class SpitCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        long now = clock.getAsLong();
+        long cooldown = plugin.getSettings().getCooldownNanos();
+        if (now - lastCleanup >= SpitSettings.MAX_COOLDOWN_NANOS) {
+            lastSpit.values().removeIf(time -> now - time >= SpitSettings.MAX_COOLDOWN_NANOS);
+            lastCleanup = now;
+        }
+        UUID id = player.getUniqueId();
+        Long previous = lastSpit.get(id);
+        if (previous != null) {
+            long remaining = cooldown - (now - previous);
+            if (remaining > 0) {
+                long seconds = TimeUnit.NANOSECONDS.toSeconds(remaining - 1) + 1;
+                player.sendMessage(ChatColor.RED + "Wait " + seconds + "s before spitting again.");
+                return true;
+            }
+        }
         projectileService.launch(player);
+        lastSpit.put(id, now);
         return true;
     }
 

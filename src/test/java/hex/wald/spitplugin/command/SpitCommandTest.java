@@ -1,9 +1,13 @@
 package hex.wald.spitplugin.command;
 
 import hex.wald.spitplugin.SpitPlugin;
+import hex.wald.spitplugin.config.SpitSettings;
 import hex.wald.spitplugin.service.SpitProjectileService;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -60,8 +64,45 @@ public class SpitCommandTest {
         command.onCommand(player, null, "spit", new String[0]);
         verifyNoInteractions(projectiles);
         when(player.hasPermission("spit.use")).thenReturn(true);
+        when(plugin.getSettings()).thenReturn(new SpitSettings(new YamlConfiguration()));
         command.onCommand(player, null, "spit", new String[0]);
         verify(projectiles).launch(player);
+    }
+
+    @Test
+    public void cooldownUsesPlayerIdAndCurrentSettings() {
+        AtomicLong clock = new AtomicLong();
+        SpitCommand timedCommand = new SpitCommand(plugin, projectiles, clock::get);
+        when(plugin.getSettings()).thenReturn(new SpitSettings(new YamlConfiguration()));
+        UUID id = UUID.randomUUID();
+        Player first = playerWithId(id);
+        Player rejoined = playerWithId(id);
+        Player other = playerWithId(UUID.randomUUID());
+
+        timedCommand.onCommand(first, null, "spit", new String[0]);
+        clock.set(1_500_000_000L);
+        timedCommand.onCommand(rejoined, null, "spit", new String[0]);
+        verify(rejoined).sendMessage(ChatColor.RED + "Wait 1s before spitting again.");
+        verify(projectiles, never()).launch(rejoined);
+        timedCommand.onCommand(other, null, "spit", new String[0]);
+        verify(projectiles).launch(other);
+
+        clock.set(2_000_000_000L);
+        timedCommand.onCommand(rejoined, null, "spit", new String[0]);
+        verify(projectiles).launch(rejoined);
+
+        YamlConfiguration disabled = new YamlConfiguration();
+        disabled.set("cooldown-seconds", 0);
+        when(plugin.getSettings()).thenReturn(new SpitSettings(disabled));
+        timedCommand.onCommand(rejoined, null, "spit", new String[0]);
+        verify(projectiles, times(2)).launch(rejoined);
+    }
+
+    private Player playerWithId(UUID id) {
+        Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(id);
+        when(player.hasPermission("spit.use")).thenReturn(true);
+        return player;
     }
 
     @Test

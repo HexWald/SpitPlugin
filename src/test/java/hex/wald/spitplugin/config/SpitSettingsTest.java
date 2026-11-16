@@ -21,6 +21,7 @@ public class SpitSettingsTest {
         }
         SpitSettings settings = new SpitSettings(config);
         assertEquals(1.0, settings.getDamage(), 0.0);
+        assertEquals(2_000_000_000L, settings.getCooldownNanos());
         assertEquals(1.1, settings.getMinSpeed(), 0.0);
         assertEquals(1.3, settings.getMaxSpeed(), 0.0);
         assertEquals(Sound.ENTITY_LLAMA_SPIT, settings.getSound());
@@ -87,6 +88,9 @@ public class SpitSettingsTest {
             assertRejected("damage", damage);
         }
         assertRejected("speed.min", 0);
+        assertRejected("cooldown-seconds", -1);
+        assertRejected("cooldown-seconds", 61);
+        assertRejected("cooldown-seconds", "2");
         assertRejected("speed.max", 5);
         assertRejected("sound.volume", -1);
         assertRejected("sound.pitch", 3);

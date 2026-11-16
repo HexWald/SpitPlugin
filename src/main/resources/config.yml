@@ -1,4 +1,5 @@
 damage: 1.0
+cooldown-seconds: 2.0
 
 speed:
   min: 1.1
