@@ -52,11 +52,11 @@ Requires JDK 17 or newer and Maven.
 mvn clean package
 ```
 
-The JAR is written to `target/spitplugin-1.1.0.jar`. The build also copies it
-to `C:\Test-Server\plugins\SpitPlugin.jar`. To use another directory:
+The JAR is written to `target/spitplugin-1.1.0.jar`. To copy it to a local
+test server after building, pass its plugins directory:
 
 ```sh
-mvn package -Dserver.plugins.dir=target/test-plugins
+mvn package "-Dserver.plugins.dir=C:/Test-Server/plugins"
 ```
 
 For installation, place the JAR in the server's `plugins` directory and

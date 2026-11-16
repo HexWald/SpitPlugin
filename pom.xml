@@ -17,7 +17,6 @@
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <byte-buddy.version>1.14.15</byte-buddy.version>
-        <server.plugins.dir>C:\Test-Server\plugins</server.plugins.dir>
     </properties>
 
     <repositories>
@@ -90,28 +89,6 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <mkdir dir="${server.plugins.dir}"/>
-                                <copy file="${project.build.directory}\${project.build.finalName}.jar"
-                                      tofile="${server.plugins.dir}\SpitPlugin.jar"
-                                      overwrite="true"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
         </plugins>
 
         <resources>
@@ -122,4 +99,39 @@
         </resources>
     </build>
 
+    <profiles>
+        <profile>
+            <id>copy-to-server</id>
+            <activation>
+                <property>
+                    <name>server.plugins.dir</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <mkdir dir="${server.plugins.dir}"/>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                              tofile="${server.plugins.dir}/SpitPlugin.jar"
+                                              overwrite="true"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
